@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>俄语打字 · A1 词汇</title>
+<style>
+:root{
+  --ink:#1E2A33; --sub:#6F7D88; --line:#D9E1E8;
+  --navy:#1B3A5C; --blue:#2E6A9E; --tint:#EAF1F7;
+  --paper:#F6F4EF; --card:#FFFFFF; --ok:#2E7D4F; --bad:#B04A3A;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"PingFang SC","Noto Sans SC",sans-serif;
+  background:var(--paper); color:var(--ink);
+  min-height:100vh; display:flex; flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+header{
+  background:linear-gradient(160deg,#1B3A5C,#142C46);
+  color:#fff; padding:14px 16px 12px;
+  display:flex; align-items:baseline; gap:10px;
+}
+header h1{margin:0;font-size:17px;font-weight:600}
+header span{font-size:11.5px;color:rgba(255,255,255,.55);letter-spacing:.06em}
+.stats{
+  display:flex; gap:0; background:#fff; border-bottom:1px solid var(--line);
+}
+.stat{flex:1; text-align:center; padding:8px 4px; border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat b{display:block; font-size:15px; font-variant-numeric:tabular-nums}
+.stat i{display:block; font-style:normal; font-size:10.5px; color:var(--sub); margin-top:1px}
+#sDone{font-size:14px}
+.bar{height:3px; background:#E4EAF0; flex:0 0 auto}
+.bar i{display:block; height:100%; width:0; background:var(--blue); transition:width .2s}
+
+/* 虚拟键盘 */
+.kb{
+  padding:8px 6px 6px; background:#fff; border-bottom:1px solid var(--line);
+  user-select:none;
+}
+.krow{display:flex; justify-content:center; gap:4px; margin-bottom:4px; flex-wrap:nowrap}
+.key{
+  flex:1 1 0; min-width:0; max-width:46px; height:38px; border-radius:7px;
+  background:#F1F4F7; border:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-size:14px; font-weight:600; color:#2B3A46; line-height:1;
+  transition:background .1s, transform .1s;
+}
+.key small{font-size:8px; font-weight:400; color:#9AA6B0; margin-top:2px}
+.key.hot{
+  background:var(--blue); border-color:var(--blue); color:#fff;
+  transform:translateY(-1px); box-shadow:0 3px 8px rgba(46,106,158,.35);
+}
+.key.hot small{color:rgba(255,255,255,.7)}
+.key.press{background:#C8D8E6}
+.key.space{flex:0 0 auto; width:min(180px,46vw); font-size:12px; color:#6F7D88; font-weight:400}
+
+/* 主区 */
+main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:clamp(24px,7vh,72px) 16px 16px}
+.word{
+  font-size:44px; font-weight:600; letter-spacing:.02em; line-height:1.2;
+  text-align:center; word-break:break-word; width:100%;
+  font-family:"PT Sans","Arial",sans-serif;
+}
+.word .done{color:var(--ok)}
+.word .cur{color:var(--blue); border-bottom:3px solid var(--blue)}
+.word .todo{color:#B9C4CC}
+.zh{margin-top:10px;font-size:16px;color:var(--sub);text-align:center}
+.pos{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--tint);color:var(--blue);margin-left:6px;vertical-align:2px}
+.speak{
+  margin-top:14px; border:1px solid var(--line); background:#fff;
+  border-radius:20px; padding:7px 16px; font-size:13.5px; color:var(--blue);
+  font-family:inherit; cursor:pointer;
+}
+.speak:active{background:var(--tint)}
+.feedback{
+  height:22px; margin-top:12px; font-size:13px; color:var(--bad); opacity:0;
+  transition:opacity .15s;
+}
+.feedback.on{opacity:1}
+footer{
+  padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 12px);
+  text-align:center; font-size:12px; color:var(--sub);
+}
+footer button{
+  border:0;background:none;color:var(--blue);font-size:12.5px;font-family:inherit;
+  text-decoration:underline;cursor:pointer;padding:4px 8px;
+}
+footer button:disabled{color:#B9C4CC;text-decoration:none;cursor:default}
+@media (max-width:400px){
+  .key{height:35px;font-size:13px}
+  .word{font-size:34px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>俄语打字</h1>
+  <span>A1 · 300 词</span>
+</header>
+
+<div class="stats">
+  <div class="stat"><b id="sDone">0/30</b><i>本轮</i></div>
+  <div class="stat"><b id="sAcc">100%</b><i>准确率</i></div>
+  <div class="stat"><b id="sSpeed">0</b><i>字/分</i></div>
+  <div class="stat"><b id="sStreak">0</b><i>连对</i></div>
+</div>
+<div class="bar"><i id="barFill"></i></div>
+
+<div class="kb" id="kb"></div>
+
+<main>
+  <div class="word" id="word"></div>
+  <div class="zh" id="zh"></div>
+  <button class="speak" id="speak">🔊 发音</button>
+  <div class="feedback" id="fb"></div>
+</main>
+
+<footer>
+  <button id="btnReview">重练错词</button>
+  <button id="btnPrev">上一词</button>
+  <button id="btnNext">下一轮</button>
+</footer>
+
+<script>
+/* ========== 键盘布局 ========== */
+var LAYOUT = [
+  ['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'],
+  ['ф','ы','в','а','п','р','о','л','д','ж','э'],
+  ['я','ч','с','м','и','т','ь','б','ю','ё']
+];
+/* 物理键 → 俄语字母 */
+var KEYMAP = {
+  'q':'й','w':'ц','e':'у','r':'к','t':'е','y':'н','u':'г','i':'ш','o':'щ','p':'з','[':'х',']':'ъ',
+  'a':'ф','s':'ы','d':'в','f':'а','g':'п','h':'р','j':'о','k':'л','l':'д',';':'ж',"'":'э',
+  'z':'я','x':'ч','c':'с','v':'м','b':'и','n':'т','m':'ь',',':'б','.':'ю','`':'ё'
+};
+
+/* ========== 词库 ========== */
+var WORDS = [
+  // 问候礼貌
+  {ru:'привет', zh:'你好（非正式）', pos:'叹'},
+  {ru:'здравствуйте', zh:'您好', pos:'叹'},
+  {ru:'доброе утро', zh:'早上好', pos:'短语'},
+  {ru:'добрый день', zh:'下午好', pos:'短语'},
+  {ru:'добрый вечер', zh:'晚上好', pos:'短语'},
+  {ru:'спокойной ночи', zh:'晚安', pos:'短语'},
+  {ru:'до свидания', zh:'再见', pos:'短语'},
+  {ru:'пока', zh:'再见（非正式）', pos:'叹'},
+  {ru:'спасибо', zh:'谢谢', pos:'叹'},
+  {ru:'пожалуйста', zh:'请 / 不客气', pos:'叹'},
+  {ru:'извините', zh:'对不起', pos:'动'},
+  {ru:'простите', zh:'原谅我', pos:'动'},
+  {ru:'да', zh:'是', pos:'助'},
+  {ru:'нет', zh:'不是', pos:'助'},
+  {ru:'конечно', zh:'当然', pos:'副'},
+  {ru:'хорошо', zh:'好', pos:'副'},
+  {ru:'плохо', zh:'不好', pos:'副'},
+  {ru:'как дела', zh:'你好吗', pos:'短语'},
+  {ru:'очень', zh:'很', pos:'副'},
+  {ru:'тоже', zh:'也', pos:'副'},
+
+  // 人称代词
+  {ru:'я', zh:'我', pos:'代'},
+  {ru:'ты', zh:'你', pos:'代'},
+  {ru:'он', zh:'他', pos:'代'},
+  {ru:'она', zh:'她', pos:'代'},
+  {ru:'оно', zh:'它', pos:'代'},
+  {ru:'мы', zh:'我们', pos:'代'},
+  {ru:'вы', zh:'您 / 你们', pos:'代'},
+  {ru:'они', zh:'他们', pos:'代'},
+  {ru:'это', zh:'这', pos:'代'},
+  {ru:'мой', zh:'我的', pos:'代'},
+  {ru:'твой', zh:'你的', pos:'代'},
+  {ru:'наш', zh:'我们的', pos:'代'},
+  {ru:'ваш', zh:'您的', pos:'代'},
+  {ru:'свой', zh:'自己的', pos:'代'},
+  {ru:'кто', zh:'谁', pos:'代'},
+
+  // 数字
+  {ru:'ноль', zh:'零', pos:'数'},
+  {ru:'один', zh:'一', pos:'数'},
+  {ru:'два', zh:'二', pos:'数'},
+  {ru:'три', zh:'三', pos:'数'},
+  {ru:'четыре', zh:'四', pos:'数'},
+  {ru:'пять', zh:'五', pos:'数'},
+  {ru:'шесть', zh:'六', pos:'数'},
+  {ru:'семь', zh:'七', pos:'数'},
+  {ru:'восемь', zh:'八', pos:'数'},
+  {ru:'девять', zh:'九', pos:'数'},
+  {ru:'десять', zh:'十', pos:'数'},
+  {ru:'одиннадцать', zh:'十一', pos:'数'},
+  {ru:'двенадцать', zh:'十二', pos:'数'},
+  {ru:'двадцать', zh:'二十', pos:'数'},
+  {ru:'тридцать', zh:'三十', pos:'数'},
+  {ru:'сорок', zh:'四十', pos:'数'},
+  {ru:'пятьдесят', zh:'五十', pos:'数'},
+  {ru:'сто', zh:'一百', pos:'数'},
+  {ru:'тысяча', zh:'一千', pos:'数'},
+  {ru:'первый', zh:'第一', pos:'数'},
+  {ru:'второй', zh:'第二', pos:'数'},
+  {ru:'много', zh:'多', pos:'副'},
+  {ru:'мало', zh:'少', pos:'副'},
+  {ru:'сколько', zh:'多少', pos:'副'},
+  {ru:'номер', zh:'号码', pos:'名'},
+
+  // 时间
+  {ru:'время', zh:'时间', pos:'名'},
+  {ru:'час', zh:'小时', pos:'名'},
+  {ru:'минута', zh:'分钟', pos:'名'},
+  {ru:'секунда', zh:'秒', pos:'名'},
+  {ru:'день', zh:'天', pos:'名'},
+  {ru:'неделя', zh:'星期', pos:'名'},
+  {ru:'месяц', zh:'月', pos:'名'},
+  {ru:'год', zh:'年', pos:'名'},
+  {ru:'сегодня', zh:'今天', pos:'副'},
+  {ru:'вчера', zh:'昨天', pos:'副'},
+  {ru:'завтра', zh:'明天', pos:'副'},
+  {ru:'сейчас', zh:'现在', pos:'副'},
+  {ru:'потом', zh:'然后', pos:'副'},
+  {ru:'утро', zh:'早晨', pos:'名'},
+  {ru:'вечер', zh:'晚上', pos:'名'},
+  {ru:'ночь', zh:'夜', pos:'名'},
+  {ru:'полдень', zh:'中午', pos:'名'},
+  {ru:'понедельник', zh:'星期一', pos:'名'},
+  {ru:'вторник', zh:'星期二', pos:'名'},
+  {ru:'среда', zh:'星期三', pos:'名'},
+  {ru:'четверг', zh:'星期四', pos:'名'},
+  {ru:'пятница', zh:'星期五', pos:'名'},
+  {ru:'суббота', zh:'星期六', pos:'名'},
+  {ru:'воскресенье', zh:'星期日', pos:'名'},
+  {ru:'январь', zh:'一月', pos:'名'},
+  {ru:'февраль', zh:'二月', pos:'名'},
+  {ru:'март', zh:'三月', pos:'名'},
+  {ru:'апрель', zh:'四月', pos:'名'},
+  {ru:'май', zh:'五月', pos:'名'},
+  {ru:'июнь', zh:'六月', pos:'名'},
+
+  // 家庭
+  {ru:'семья', zh:'家庭', pos:'名'},
+  {ru:'мама', zh:'妈妈', pos:'名'},
+  {ru:'папа', zh:'爸爸', pos:'名'},
+  {ru:'мать', zh:'母亲', pos:'名'},
+  {ru:'отец', zh:'父亲', pos:'名'},
+  {ru:'сын', zh:'儿子', pos:'名'},
+  {ru:'дочь', zh:'女儿', pos:'名'},
+  {ru:'брат', zh:'兄弟', pos:'名'},
+  {ru:'сестра', zh:'姐妹', pos:'名'},
+  {ru:'бабушка', zh:'奶奶', pos:'名'},
+  {ru:'дедушка', zh:'爷爷', pos:'名'},
+  {ru:'муж', zh:'丈夫', pos:'名'},
+  {ru:'жена', zh:'妻子', pos:'名'},
+  {ru:'ребёнок', zh:'孩子', pos:'名'},
+  {ru:'дети', zh:'孩子们', pos:'名'},
+  {ru:'родители', zh:'父母', pos:'名'},
+  {ru:'друг', zh:'朋友', pos:'名'},
+  {ru:'подруга', zh:'女性朋友', pos:'名'},
+  {ru:'человек', zh:'人', pos:'名'},
+  {ru:'люди', zh:'人们', pos:'名'},
+
+  // 食物
+  {ru:'еда', zh:'食物', pos:'名'},
+  {ru:'вода', zh:'水', pos:'名'},
+  {ru:'хлеб', zh:'面包', pos:'名'},
+  {ru:'молоко', zh:'牛奶', pos:'名'},
+  {ru:'чай', zh:'茶', pos:'名'},
+  {ru:'кофе', zh:'咖啡', pos:'名'},
+  {ru:'сок', zh:'果汁', pos:'名'},
+  {ru:'мясо', zh:'肉', pos:'名'},
+  {ru:'рыба', zh:'鱼', pos:'名'},
+  {ru:'курица', zh:'鸡肉', pos:'名'},
+  {ru:'яйцо', zh:'鸡蛋', pos:'名'},
+  {ru:'сыр', zh:'奶酪', pos:'名'},
+  {ru:'масло', zh:'黄油', pos:'名'},
+  {ru:'сахар', zh:'糖', pos:'名'},
+  {ru:'соль', zh:'盐', pos:'名'},
+  {ru:'суп', zh:'汤', pos:'名'},
+  {ru:'рис', zh:'米饭', pos:'名'},
+  {ru:'картофель', zh:'土豆', pos:'名'},
+  {ru:'овощ', zh:'蔬菜', pos:'名'},
+  {ru:'фрукт', zh:'水果', pos:'名'},
+  {ru:'яблоко', zh:'苹果', pos:'名'},
+  {ru:'банан', zh:'香蕉', pos:'名'},
+  {ru:'апельсин', zh:'橙子', pos:'名'},
+  {ru:'помидор', zh:'西红柿', pos:'名'},
+  {ru:'огурец', zh:'黄瓜', pos:'名'},
+  {ru:'завтрак', zh:'早餐', pos:'名'},
+  {ru:'обед', zh:'午餐', pos:'名'},
+  {ru:'ужин', zh:'晚餐', pos:'名'},
+  {ru:'ресторан', zh:'餐厅', pos:'名'},
+  {ru:'кафе', zh:'咖啡馆', pos:'名'},
+
+  // 日常物品
+  {ru:'дом', zh:'房子', pos:'名'},
+  {ru:'квартира', zh:'公寓', pos:'名'},
+  {ru:'комната', zh:'房间', pos:'名'},
+  {ru:'кухня', zh:'厨房', pos:'名'},
+  {ru:'стол', zh:'桌子', pos:'名'},
+  {ru:'стул', zh:'椅子', pos:'名'},
+  {ru:'кровать', zh:'床', pos:'名'},
+  {ru:'окно', zh:'窗户', pos:'名'},
+  {ru:'дверь', zh:'门', pos:'名'},
+  {ru:'книга', zh:'书', pos:'名'},
+  {ru:'тетрадь', zh:'笔记本', pos:'名'},
+  {ru:'ручка', zh:'笔', pos:'名'},
+  {ru:'телефон', zh:'电话', pos:'名'},
+  {ru:'компьютер', zh:'电脑', pos:'名'},
+  {ru:'ключ', zh:'钥匙', pos:'名'},
+  {ru:'сумка', zh:'包', pos:'名'},
+  {ru:'деньги', zh:'钱', pos:'名'},
+  {ru:'карта', zh:'卡', pos:'名'},
+  {ru:'часы', zh:'手表', pos:'名'},
+  {ru:'одежда', zh:'衣服', pos:'名'},
+  {ru:'рубашка', zh:'衬衫', pos:'名'},
+  {ru:'брюки', zh:'裤子', pos:'名'},
+  {ru:'обувь', zh:'鞋', pos:'名'},
+  {ru:'зонт', zh:'伞', pos:'名'},
+  {ru:'свет', zh:'光', pos:'名'},
+
+  // 颜色
+  {ru:'цвет', zh:'颜色', pos:'名'},
+  {ru:'красный', zh:'红色', pos:'形'},
+  {ru:'синий', zh:'蓝色', pos:'形'},
+  {ru:'зелёный', zh:'绿色', pos:'形'},
+  {ru:'жёлтый', zh:'黄色', pos:'形'},
+  {ru:'чёрный', zh:'黑色', pos:'形'},
+  {ru:'белый', zh:'白色', pos:'形'},
+  {ru:'серый', zh:'灰色', pos:'形'},
+  {ru:'коричневый', zh:'棕色', pos:'形'},
+  {ru:'оранжевый', zh:'橙色', pos:'形'},
+  {ru:'розовый', zh:'粉色', pos:'形'},
+  {ru:'фиолетовый', zh:'紫色', pos:'形'},
+  {ru:'светлый', zh:'浅色', pos:'形'},
+  {ru:'тёмный', zh:'深色', pos:'形'},
+  {ru:'красивый', zh:'漂亮', pos:'形'},
+
+  // 身体
+  {ru:'тело', zh:'身体', pos:'名'},
+  {ru:'голова', zh:'头', pos:'名'},
+  {ru:'лицо', zh:'脸', pos:'名'},
+  {ru:'глаз', zh:'眼睛', pos:'名'},
+  {ru:'ухо', zh:'耳朵', pos:'名'},
+  {ru:'нос', zh:'鼻子', pos:'名'},
+  {ru:'рот', zh:'嘴', pos:'名'},
+  {ru:'зуб', zh:'牙齿', pos:'名'},
+  {ru:'рука', zh:'手', pos:'名'},
+  {ru:'нога', zh:'腿', pos:'名'},
+  {ru:'палец', zh:'手指', pos:'名'},
+  {ru:'волосы', zh:'头发', pos:'名'},
+  {ru:'сердце', zh:'心', pos:'名'},
+  {ru:'спина', zh:'背', pos:'名'},
+  {ru:'живот', zh:'肚子', pos:'名'},
+
+  // 动词
+  {ru:'быть', zh:'是', pos:'动'},
+  {ru:'иметь', zh:'有', pos:'动'},
+  {ru:'делать', zh:'做', pos:'动'},
+  {ru:'говорить', zh:'说', pos:'动'},
+  {ru:'сказать', zh:'说（完成）', pos:'动'},
+  {ru:'знать', zh:'知道', pos:'动'},
+  {ru:'думать', zh:'想', pos:'动'},
+  {ru:'понимать', zh:'理解', pos:'动'},
+  {ru:'видеть', zh:'看见', pos:'动'},
+  {ru:'смотреть', zh:'看', pos:'动'},
+  {ru:'слышать', zh:'听见', pos:'动'},
+  {ru:'слушать', zh:'听', pos:'动'},
+  {ru:'читать', zh:'读', pos:'动'},
+  {ru:'писать', zh:'写', pos:'动'},
+  {ru:'идти', zh:'走', pos:'动'},
+  {ru:'ехать', zh:'乘车去', pos:'动'},
+  {ru:'приходить', zh:'来', pos:'动'},
+  {ru:'уходить', zh:'离开', pos:'动'},
+  {ru:'работать', zh:'工作', pos:'动'},
+  {ru:'учиться', zh:'学习', pos:'动'},
+  {ru:'жить', zh:'生活', pos:'动'},
+  {ru:'есть', zh:'吃', pos:'动'},
+  {ru:'пить', zh:'喝', pos:'动'},
+  {ru:'спать', zh:'睡', pos:'动'},
+  {ru:'вставать', zh:'起床', pos:'动'},
+  {ru:'сидеть', zh:'坐', pos:'动'},
+  {ru:'стоять', zh:'站', pos:'动'},
+  {ru:'любить', zh:'爱', pos:'动'},
+  {ru:'хотеть', zh:'想要', pos:'动'},
+  {ru:'мочь', zh:'能', pos:'动'},
+  {ru:'давать', zh:'给', pos:'动'},
+  {ru:'брать', zh:'拿', pos:'动'},
+  {ru:'покупать', zh:'买', pos:'动'},
+  {ru:'продавать', zh:'卖', pos:'动'},
+  {ru:'открывать', zh:'打开', pos:'动'},
+  {ru:'закрывать', zh:'关闭', pos:'动'},
+  {ru:'начинать', zh:'开始', pos:'动'},
+  {ru:'кончать', zh:'结束', pos:'动'},
+  {ru:'помогать', zh:'帮助', pos:'动'},
+  {ru:'ждать', zh:'等待', pos:'动'},
+  {ru:'звонить', zh:'打电话', pos:'动'},
+  {ru:'играть', zh:'玩', pos:'动'},
+  {ru:'гулять', zh:'散步', pos:'动'},
+  {ru:'готовить', zh:'做饭', pos:'动'},
+  {ru:'мыть', zh:'洗', pos:'动'},
+  {ru:'чистить', zh:'清洁', pos:'动'},
+  {ru:'одеваться', zh:'穿衣', pos:'动'},
+  {ru:'родиться', zh:'出生', pos:'动'},
+  {ru:'умирать', zh:'死', pos:'动'},
+  {ru:'помнить', zh:'记得', pos:'动'},
+
+  // 形容词
+  {ru:'большой', zh:'大', pos:'形'},
+  {ru:'маленький', zh:'小', pos:'形'},
+  {ru:'новый', zh:'新', pos:'形'},
+  {ru:'старый', zh:'旧', pos:'形'},
+  {ru:'хороший', zh:'好', pos:'形'},
+  {ru:'плохой', zh:'坏', pos:'形'},
+  {ru:'дорогой', zh:'贵', pos:'形'},
+  {ru:'дешёвый', zh:'便宜', pos:'形'},
+  {ru:'быстрый', zh:'快', pos:'形'},
+  {ru:'медленный', zh:'慢', pos:'形'},
+  {ru:'горячий', zh:'热', pos:'形'},
+  {ru:'холодный', zh:'冷', pos:'形'},
+  {ru:'тёплый', zh:'暖', pos:'形'},
+  {ru:'лёгкий', zh:'轻 / 容易', pos:'形'},
+  {ru:'трудный', zh:'难', pos:'形'},
+  {ru:'интересный', zh:'有趣', pos:'形'},
+  {ru:'скучный', zh:'无聊', pos:'形'},
+  {ru:'вкусный', zh:'好吃', pos:'形'},
+  {ru:'сладкий', zh:'甜', pos:'形'},
+  {ru:'солёный', zh:'咸', pos:'形'},
+  {ru:'молодой', zh:'年轻', pos:'形'},
+  {ru:'пожилой', zh:'年长', pos:'形'},
+  {ru:'счастливый', zh:'幸福', pos:'形'},
+  {ru:'грустный', zh:'悲伤', pos:'形'},
+  {ru:'важный', zh:'重要', pos:'形'},
+  {ru:'простой', zh:'简单', pos:'形'},
+  {ru:'длинный', zh:'长', pos:'形'},
+  {ru:'короткий', zh:'短', pos:'形'},
+  {ru:'высокий', zh:'高', pos:'形'},
+  {ru:'низкий', zh:'低', pos:'形'},
+
+  // 地点交通
+  {ru:'город', zh:'城市', pos:'名'},
+  {ru:'деревня', zh:'村庄', pos:'名'},
+  {ru:'улица', zh:'街道', pos:'名'},
+  {ru:'площадь', zh:'广场', pos:'名'},
+  {ru:'парк', zh:'公园', pos:'名'},
+  {ru:'школа', zh:'学校', pos:'名'},
+  {ru:'университет', zh:'大学', pos:'名'},
+  {ru:'больница', zh:'医院', pos:'名'},
+  {ru:'аптека', zh:'药店', pos:'名'},
+  {ru:'магазин', zh:'商店', pos:'名'},
+  {ru:'рынок', zh:'市场', pos:'名'},
+  {ru:'банк', zh:'银行', pos:'名'},
+  {ru:'почта', zh:'邮局', pos:'名'},
+  {ru:'вокзал', zh:'火车站', pos:'名'},
+  {ru:'аэропорт', zh:'机场', pos:'名'},
+  {ru:'автобус', zh:'公交车', pos:'名'},
+  {ru:'машина', zh:'汽车', pos:'名'},
+  {ru:'поезд', zh:'火车', pos:'名'},
+  {ru:'самолёт', zh:'飞机', pos:'名'},
+  {ru:'метро', zh:'地铁', pos:'名'},
+  {ru:'такси', zh:'出租车', pos:'名'},
+  {ru:'билет', zh:'票', pos:'名'},
+  {ru:'дорога', zh:'路', pos:'名'},
+  {ru:'мост', zh:'桥', pos:'名'},
+  {ru:'музей', zh:'博物馆', pos:'名'}
+];
+
+/* ========== 状态 ========== */
+var ROUND = 30;                     // 每轮词数
+var SAVE_KEY = 'ru.typing.v1';
+
+var queue = [];
+var idx = 0;
+var typed = 0;
+var totalRight = 0, totalTyped = 0;
+var streak = 0, maxStreak = 0;
+var startAt = 0, typedChars = 0;
+var current = null;
+var finished = false;
+var mode = 'normal';                // normal | review
+var wrongThisWord = false;          // 当前这个词本轮是否打错过
+
+var state = { order: [], roundStart: 0, wrong: {} };
+
+function shuffle(a){
+  for (var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; }
+  return a;
+}
+
+/* ---------- 存档 ---------- */
+function freshState(){
+  var o = [];
+  for (var i=0;i<WORDS.length;i++) o.push(i);
+  return { order: shuffle(o), roundStart: 0, wrong: {} };
+}
+function save(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 1, order: state.order, roundStart: state.roundStart, wrong: state.wrong
+    }));
+  } catch(e){}
+}
+function loadSave(){
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    if (!d || d.v !== 1) return false;
+    if (!Array.isArray(d.order) || d.order.length !== WORDS.length) return false;
+    for (var i=0;i<d.order.length;i++){
+      var n = d.order[i];
+      if (typeof n !== 'number' || n < 0 || n >= WORDS.length || n !== Math.floor(n)) return false;
+    }
+    if (typeof d.roundStart !== 'number' || d.roundStart < 0) return false;
+    var w = (d.wrong && typeof d.wrong === 'object') ? d.wrong : {};
+    var clean = {};
+    Object.keys(w).forEach(function(k){
+      var hit = false;
+      for (var j=0;j<WORDS.length;j++) if (WORDS[j].ru === k){ hit = true; break; }
+      if (!hit) return;
+      var c = parseInt(w[k], 10);
+      if (c > 0) clean[k] = c;
+    });
+    state.order = d.order;
+    state.roundStart = Math.floor(d.roundStart / ROUND) * ROUND;
+    if (state.roundStart >= WORDS.length) state.roundStart = 0;
+    state.wrong = clean;
+    return true;
+  } catch(e){ return false; }
+}
+function wrongCount(){ return Object.keys(state.wrong).length; }
+
+/* ---------- 轮次 ---------- */
+function resetRound(m){
+  idx = 0; typed = 0;
+  totalRight = 0; totalTyped = 0;
+  streak = 0; maxStreak = 0; typedChars = 0;
+  startAt = Date.now();
+  finished = false;
+  mode = m;
+  wrongThisWord = false;
+}
+function loadRound(){
+  if (state.roundStart >= WORDS.length){
+    shuffle(state.order);
+    state.roundStart = 0;
+  }
+  var end = Math.min(state.roundStart + ROUND, WORDS.length);
+  queue = state.order.slice(state.roundStart, end).map(function(i){ return WORDS[i]; });
+  resetRound('normal');
+  loadWord();
+  updateStats();
+  save();
+}
+function nextRound(){
+  // 重练模式下不推进轮次，直接回到当前批
+  if (mode === 'review'){ loadRound(); return; }
+  state.roundStart += ROUND;
+  if (state.roundStart >= WORDS.length){
+    shuffle(state.order);
+    state.roundStart = 0;
+  }
+  loadRound();
+}
+function startReview(){
+  var keys = Object.keys(state.wrong);
+  if (!keys.length){ toast('错词池是空的'); return; }
+  keys.sort(function(a,b){ return state.wrong[b] - state.wrong[a]; });
+  var picked = keys.slice(0, ROUND);
+  queue = [];
+  picked.forEach(function(ru){
+    for (var i=0;i<WORDS.length;i++){
+      if (WORDS[i].ru === ru){ queue.push(WORDS[i]); break; }
+    }
+  });
+  shuffle(queue);
+  resetRound('review');
+  loadWord();
+  updateStats();
+}
+function toast(msg){
+  var fb = document.getElementById('fb');
+  fb.textContent = msg;
+  fb.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ fb.classList.remove('on'); }, 1600);
+}
+function buildKeyboard(){
+  var kb = document.getElementById('kb');
+  kb.innerHTML = '';
+  LAYOUT.forEach(function(row){
+    var r = document.createElement('div'); r.className = 'krow';
+    row.forEach(function(ch){
+      var k = document.createElement('div'); k.className = 'key';
+      var phys = '';
+      for (var p in KEYMAP) if (KEYMAP[p] === ch) { phys = p; break; }
+      k.innerHTML = ch + '<small>' + phys + '</small>';
+      k.dataset.ch = ch;
+      k.addEventListener('click', function(){ handleChar(ch); });
+      r.appendChild(k);
+    });
+    kb.appendChild(r);
+  });
+  var sp = document.createElement('div'); sp.className = 'krow';
+  var sk = document.createElement('div'); sk.className = 'key space';
+  sk.innerHTML = '空格<small>space</small>';
+  sk.dataset.ch = ' ';
+  sk.addEventListener('click', function(){ handleChar(' '); });
+  sp.appendChild(sk);
+  kb.appendChild(sp);
+}
+function highlight(ch){
+  document.querySelectorAll('.key').forEach(function(k){
+    k.classList.toggle('hot', k.dataset.ch === ch);
+  });
+}
+function renderWord(){
+  var w = current.ru;
+  var html = '';
+  for (var i=0;i<w.length;i++){
+    var ch = w[i];
+    var cls = i < typed ? 'done' : (i === typed ? 'cur' : 'todo');
+    html += '<span class="' + cls + '">' + (ch === ' ' ? '&nbsp;' : ch) + '</span>';
+  }
+  document.getElementById('word').innerHTML = html;
+  document.getElementById('zh').innerHTML = current.zh
+    + '<span class="pos">' + current.pos + '</span>';
+  fitWord();
+  highlight(w[typed] || '');
+}
+/* 长词按可用宽度自动缩字号 */
+function fitWord(){
+  var el = document.getElementById('word');
+  el.style.fontSize = '44px';
+  var guard = 0;
+  while (el.scrollWidth > el.clientWidth + 1 && guard++ < 14){
+    var cur = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = Math.max(20, cur - 2) + 'px';
+  }
+}
+function loadWord(){
+  if (idx >= queue.length){ finish(); return; }
+  current = queue[idx];
+  typed = 0;
+  finished = false;
+  wrongThisWord = false;
+  renderWord();
+  document.getElementById('fb').classList.remove('on');
+}
+function handleChar(ch){
+  if (finished || !current) return;
+  var target = current.ru[typed];
+  if (!target) return;
+  var a = ch.toLowerCase(), b = target.toLowerCase();
+  // 俄语里 ё 常被打成 е，两者互通
+  if (a === 'ё') a = 'е';
+  if (b === 'ё') b = 'е';
+  var ok = (a === b);
+  totalTyped++;
+  if (ok){
+    totalRight++;
+    typed++;
+    typedChars++;
+    var k = document.querySelector('.key[data-ch="' + ch + '"]');
+    if (k){ k.classList.add('press'); setTimeout(function(){ k.classList.remove('press'); }, 90); }
+    if (typed >= current.ru.length){
+      streak++;
+      maxStreak = Math.max(maxStreak, streak);
+      // 整词无错通过，从错词池移除
+      if (!wrongThisWord && state.wrong[current.ru]){
+        delete state.wrong[current.ru];
+        save();
+      }
+      idx++;
+      updateStats();
+      setTimeout(function(){
+        if (idx < queue.length) loadWord();
+        else finish();
+      }, 260);
+      return;
+    }
+    renderWord();
+  } else {
+    streak = 0;
+    // 一个词本轮只记一次错
+    if (!wrongThisWord){
+      wrongThisWord = true;
+      state.wrong[current.ru] = (state.wrong[current.ru] || 0) + 1;
+      save();
+    }
+    var fb = document.getElementById('fb');
+    fb.textContent = '应为 «' + target + '»';
+    fb.classList.add('on');
+    var wk = document.getElementById('word');
+    wk.style.color = 'var(--bad)';
+    setTimeout(function(){ wk.style.color = ''; }, 180);
+  }
+  updateStats();
+}
+function updateStats(){
+  document.getElementById('sDone').textContent = idx + '/' + (queue.length || 0);
+  var acc = totalTyped ? Math.round(totalRight/totalTyped*100) : 100;
+  document.getElementById('sAcc').textContent = acc + '%';
+  var mins = (Date.now()-startAt)/60000;
+  document.getElementById('sSpeed').textContent = mins > 0.05 ? Math.round(typedChars/mins) : 0;
+  document.getElementById('sStreak').textContent = streak;
+  document.getElementById('barFill').style.width =
+    (queue.length ? Math.min(100, idx / queue.length * 100) : 0) + '%';
+  var n = wrongCount();
+  var b = document.getElementById('btnReview');
+  b.textContent = n ? '重练错词 (' + n + ')' : '重练错词';
+  b.disabled = n === 0;
+  document.getElementById('btnNext').textContent = mode === 'review' ? '回到练习' : '下一轮';
+}
+function finish(){
+  finished = true;
+  var acc = totalTyped ? Math.round(totalRight / totalTyped * 100) : 100;
+  var mins = (Date.now() - startAt) / 60000;
+  var speed = mins > 0.05 ? Math.round(typedChars / mins) : 0;
+  var el = document.getElementById('word');
+  el.style.fontSize = '';
+  el.textContent = mode === 'review' ? '重练完成' : '本轮完成';
+  var lines = [
+    queue.length + ' 词 · 准确率 ' + acc + '% · ' + speed + ' 字/分',
+    '最长连对 ' + maxStreak
+  ];
+  if (mode === 'review'){
+    var left = wrongCount();
+    lines.push(left ? '错词池还剩 ' + left + ' 个，可再练一遍' : '错词池已清空');
+  } else {
+    var n = wrongCount();
+    lines.push(n ? '错词池 ' + n + ' 个，点左下重练' : '没有新错词');
+  }
+  document.getElementById('zh').innerHTML = lines.join('<br>');
+  highlight('');
+  updateStats();
+}
+function start(){
+  if (!loadSave()) state = freshState();
+  loadRound();
+}
+function speak(){
+  if (!current) return;
+  if (!('speechSynthesis' in window)){ alert('当前浏览器不支持语音'); return; }
+  speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(current.ru);
+  u.lang = 'ru-RU';
+  u.rate = 0.9;
+  var vs = speechSynthesis.getVoices();
+  var v = vs.filter(function(x){ return /^ru/i.test(x.lang); })[0];
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ========== 事件 ========== */
+document.addEventListener('keydown', function(e){
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  var k = e.key.toLowerCase();
+  if (k === ' ' || e.code === 'Space'){
+    e.preventDefault();
+    handleChar(' ');
+    return;
+  }
+  if (k === 'backspace'){
+    e.preventDefault();
+    if (typed > 0){ typed--; renderWord(); }
+    return;
+  }
+  var ru = KEYMAP[k];
+  if (ru){
+    e.preventDefault();
+    handleChar(ru);
+  }
+});
+document.getElementById('speak').addEventListener('click', speak);
+document.getElementById('btnReview').addEventListener('click', startReview);
+document.getElementById('btnNext').addEventListener('click', nextRound);
+document.getElementById('btnPrev').addEventListener('click', function(){
+  if (idx > 0){ idx--; typed = 0; loadWord(); updateStats(); }
+});
+if ('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged = function(){};
+}
+buildKeyboard();
+start();
+</script>
+</body>
+</html>
