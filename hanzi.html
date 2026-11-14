@@ -27,6 +27,13 @@ header{
 header h1{margin:0;font-size:17px;font-weight:600}
 header span{font-size:11.5px;color:rgba(255,255,255,.62);letter-spacing:.05em}
 
+.modes{display:flex; gap:8px; padding:9px 16px; background:var(--card); border-bottom:1px solid var(--line)}
+.mode{
+  flex:1; padding:7px 0; border-radius:9px; border:1px solid var(--line);
+  background:#F6F1E7; font-family:inherit; font-size:13px; font-weight:600;
+  color:#7A6B58; cursor:pointer; transition:background .15s,color .15s,border-color .15s;
+}
+.mode.on{background:var(--zhu); border-color:var(--zhu); color:#fff}
 .stats{display:flex; background:var(--card); border-bottom:1px solid var(--line)}
 .stat{flex:1; text-align:center; padding:8px 4px; border-right:1px solid var(--line)}
 .stat:last-child{border-right:0}
@@ -71,6 +78,17 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
 .unit.cur .ch{color:var(--zhu)}
 .unit.cur .syl{color:var(--zhu); border-bottom:2px solid var(--zhu); padding-bottom:2px}
 
+.src{font-size:12px; color:var(--sub); margin-top:10px; min-height:17px; text-align:center; letter-spacing:.04em}
+/* 句子模式：字号缩小，按标点分行 */
+body.mode-sent .chars{flex-direction:column; align-items:center; gap:4px; flex-wrap:nowrap}
+body.mode-sent .line{display:flex; flex-wrap:wrap; justify-content:center; width:100%}
+body.mode-sent .clause{display:flex; flex-wrap:nowrap}
+body.mode-sent .ch{font-size:27px}
+body.mode-sent .syl{font-size:11px; margin-top:4px}
+body.mode-sent .unit{padding:0 4px}
+.unit.punct{padding:0 1px}
+.unit.punct .ch{font-size:22px; color:#C9C2B4; font-weight:400}
+
 .speak{
   margin-top:18px; border:1px solid var(--line); background:var(--card);
   border-radius:20px; padding:7px 16px; font-size:13.5px; color:var(--zhu);
@@ -101,8 +119,13 @@ footer button:disabled{color:#BFB8AA;text-decoration:none;cursor:default}
 <body>
 <header>
   <h1>汉字打字</h1>
-  <span>地名 · 多音字 · 200 词</span>
+  <span id="sub">地名 · 多音字 · 200 词</span>
 </header>
+
+<div class="modes">
+  <button class="mode on" data-mode="word" type="button">词语</button>
+  <button class="mode" data-mode="sent" type="button">句子</button>
+</div>
 
 <div class="stats">
   <div class="stat"><b id="sDone">0/30</b><i>本轮</i></div>
@@ -116,6 +139,7 @@ footer button:disabled{color:#BFB8AA;text-decoration:none;cursor:default}
 
 <main>
   <div class="chars" id="chars"></div>
+  <div class="src" id="src"></div>
   <button class="speak" id="speak">🔊 发音</button>
   <div class="tip" id="tip">打之前把系统输入法切到英文，否则字母会变成汉字</div>
   <div class="feedback" id="fb"></div>
@@ -355,6 +379,55 @@ function keyOf(s){
 function sylsOf(p){ return p.split(' ').filter(function(s){ return s.length; }); }
 function fullKey(p){ return sylsOf(p).map(keyOf).join(''); }
 
+/* ========== 句子库 ========== */
+var SENTENCES = [
+  ["学而时习之，不亦说乎","xué ér shí xí zhī bù yì yuè hū","《论语》"],
+  ["温故而知新，可以为师矣","wēn gù ér zhī xīn kě yǐ wéi shī yǐ","《论语》"],
+  ["三人行，必有我师焉","sān rén xíng bì yǒu wǒ shī yān","《论语》"],
+  ["敏而好学，不耻下问","mǐn ér hào xué bù chǐ xià wèn","《论语》"],
+  ["学而不思则罔，思而不学则殆","xué ér bù sī zé wǎng sī ér bù xué zé dài","《论语》"],
+  ["己所不欲，勿施于人","jǐ suǒ bù yù wù shī yú rén","《论语》"],
+  ["知之为知之，不知为不知","zhī zhī wéi zhī zhī bù zhī wéi bù zhī","《论语》"],
+  ["千里之行，始于足下","qiān lǐ zhī xíng shǐ yú zú xià","《道德经》"],
+  ["合抱之木，生于毫末","hé bào zhī mù shēng yú háo mò","《道德经》"],
+  ["上善若水，水善利万物","shàng shàn ruò shuǐ shuǐ shàn lì wàn wù","《道德经》"],
+  ["天行健，君子以自强不息","tiān xíng jiàn jūn zǐ yǐ zì qiáng bù xī","《周易》"],
+  ["地势坤，君子以厚德载物","dì shì kūn jūn zǐ yǐ hòu dé zài wù","《周易》"],
+  ["海内存知己，天涯若比邻","hǎi nèi cún zhī jǐ tiān yá ruò bǐ lín","王勃"],
+  ["落霞与孤鹜齐飞，秋水共长天一色","luò xiá yǔ gū wù qí fēi qiū shuǐ gòng cháng tiān yī sè","王勃"],
+  ["会当凌绝顶，一览众山小","huì dāng líng jué dǐng yī lǎn zhòng shān xiǎo","杜甫"],
+  ["读书破万卷，下笔如有神","dú shū pò wàn juàn xià bǐ rú yǒu shén","杜甫"],
+  ["长风破浪会有时，直挂云帆济沧海","cháng fēng pò làng huì yǒu shí zhí guà yún fān jì cāng hǎi","李白"],
+  ["山重水复疑无路，柳暗花明又一村","shān chóng shuǐ fù yí wú lù liǔ àn huā míng yòu yī cūn","陆游"],
+  ["纸上得来终觉浅，绝知此事要躬行","zhǐ shàng dé lái zhōng jué qiǎn jué zhī cǐ shì yào gōng xíng","陆游"],
+  ["问渠那得清如许，为有源头活水来","wèn qú nà dé qīng rú xǔ wèi yǒu yuán tóu huó shuǐ lái","朱熹"],
+  ["不畏浮云遮望眼，自缘身在最高层","bù wèi fú yún zhē wàng yǎn zì yuán shēn zài zuì gāo céng","王安石"],
+  ["落红不是无情物，化作春泥更护花","luò hóng bù shì wú qíng wù huà zuò chūn ní gèng hù huā","龚自珍"],
+  ["非淡泊无以明志，非宁静无以致远","fēi dàn bó wú yǐ míng zhì fēi níng jìng wú yǐ zhì yuǎn","诸葛亮"],
+  ["静以修身，俭以养德","jìng yǐ xiū shēn jiǎn yǐ yǎng dé","诸葛亮"],
+  ["业精于勤，荒于嬉","yè jīng yú qín huāng yú xī","韩愈"],
+  ["行成于思，毁于随","xíng chéng yú sī huǐ yú suí","韩愈"],
+  ["不积跬步，无以至千里","bù jī kuǐ bù wú yǐ zhì qiān lǐ","《荀子》"],
+  ["锲而不舍，金石可镂","qiè ér bù shě jīn shí kě lòu","《荀子》"],
+  ["先天下之忧而忧，后天下之乐而乐","xiān tiān xià zhī yōu ér yōu hòu tiān xià zhī lè ér lè","范仲淹"],
+  ["人生自古谁无死，留取丹心照汗青","rén shēng zì gǔ shuí wú sǐ liú qǔ dān xīn zhào hàn qīng","文天祥"],
+  ["与天奋斗，其乐无穷；与地奋斗，其乐无穷；与人奋斗，其乐无穷。","yǔ tiān fèn dòu qí lè wú qióng yǔ dì fèn dòu qí lè wú qióng yǔ rén fèn dòu qí lè wú qióng","毛泽东"],
+  ["星星之火，可以燎原","xīng xīng zhī huǒ kě yǐ liáo yuán","毛泽东"],
+  ["好好学习，天天向上","hǎo hǎo xué xí tiān tiān xiàng shàng","毛泽东"],
+  ["世上无难事，只要肯登攀","shì shàng wú nán shì zhǐ yào kěn dēng pān","毛泽东"],
+  ["数风流人物，还看今朝","shǔ fēng liú rén wù hái kàn jīn zhāo","毛泽东"],
+  ["一万年太久，只争朝夕","yī wàn nián tài jiǔ zhǐ zhēng zhāo xī","毛泽东"],
+  ["雄关漫道真如铁，而今迈步从头越","xióng guān màn dào zhēn rú tiě ér jīn mài bù cóng tóu yuè","毛泽东"],
+  ["红军不怕远征难，万水千山只等闲","hóng jūn bù pà yuǎn zhēng nán wàn shuǐ qiān shān zhǐ děng xián","毛泽东"],
+  ["天若有情天亦老，人间正道是沧桑","tiān ruò yǒu qíng tiān yì lǎo rén jiān zhèng dào shì cāng sāng","毛泽东"],
+  ["不管风吹浪打，胜似闲庭信步","bù guǎn fēng chuī làng dǎ shèng sì xián tíng xìn bù","毛泽东"],
+  ["中华儿女多奇志，不爱红装爱武装","zhōng huá ér nǚ duō qí zhì bù ài hóng zhuāng ài wǔ zhuāng","毛泽东"],
+  ["没有调查，就没有发言权","méi yǒu diào chá jiù méi yǒu fā yán quán","毛泽东"],
+  ["自力更生，艰苦奋斗","zì lì gēng shēng jiān kǔ fèn dòu","毛泽东"],
+  ["一切反动派都是纸老虎","yī qiè fǎn dòng pài dōu shì zhǐ lǎo hǔ","毛泽东"],
+  ["下定决心，不怕牺牲","xià dìng jué xīn bù pà xī shēng","毛泽东"]
+];
+
 /* ========== 键盘 ========== */
 var LAYOUT = [
   ['q','w','e','r','t','y','u','i','o','p'],
@@ -363,8 +436,8 @@ var LAYOUT = [
 ];
 
 /* ========== 状态 ========== */
-var ROUND = 30;
-var SAVE_KEY = 'hanzi.typing.v1';
+var MODE = 'word';                    // word | sent
+var ROUND_WORD = 30, ROUND_SENT = 10;
 
 var queue = [];
 var idx = 0;
@@ -385,44 +458,49 @@ function shuffle(a){
   for (var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; }
   return a;
 }
+function pool(){ return MODE === 'word' ? WORDS : SENTENCES; }
+function roundSize(){ return MODE === 'word' ? ROUND_WORD : ROUND_SENT; }
+function saveKey(){ return MODE === 'word' ? 'hanzi.typing.v1' : 'hanzi.sent.v1'; }
 
 /* ---------- 存档 ---------- */
 function freshState(){
+  var p = pool();
   var o = [];
-  for (var i=0;i<WORDS.length;i++) o.push(i);
+  for (var i=0;i<p.length;i++) o.push(i);
   return { order: shuffle(o), roundStart: 0, wrong: {} };
 }
 function save(){
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
+    localStorage.setItem(saveKey(), JSON.stringify({
       v: 1, order: state.order, roundStart: state.roundStart, wrong: state.wrong
     }));
   } catch(e){}
 }
 function loadSave(){
   try {
-    var raw = localStorage.getItem(SAVE_KEY);
+    var raw = localStorage.getItem(saveKey());
     if (!raw) return false;
     var d = JSON.parse(raw);
     if (!d || d.v !== 1) return false;
-    if (!Array.isArray(d.order) || d.order.length !== WORDS.length) return false;
+    var p = pool(), R = roundSize();
+    if (!Array.isArray(d.order) || d.order.length !== p.length) return false;
     for (var i=0;i<d.order.length;i++){
       var n = d.order[i];
-      if (typeof n !== 'number' || n < 0 || n >= WORDS.length || n !== Math.floor(n)) return false;
+      if (typeof n !== 'number' || n < 0 || n >= p.length || n !== Math.floor(n)) return false;
     }
     if (typeof d.roundStart !== 'number' || d.roundStart < 0) return false;
     var w = (d.wrong && typeof d.wrong === 'object') ? d.wrong : {};
     var clean = {};
     Object.keys(w).forEach(function(k){
       var hit = false;
-      for (var j=0;j<WORDS.length;j++) if (WORDS[j][0] === k){ hit = true; break; }
+      for (var j=0;j<p.length;j++) if (p[j][0] === k){ hit = true; break; }
       if (!hit) return;
       var c = parseInt(w[k], 10);
       if (c > 0) clean[k] = c;
     });
     state.order = d.order;
-    state.roundStart = Math.floor(d.roundStart / ROUND) * ROUND;
-    if (state.roundStart >= WORDS.length) state.roundStart = 0;
+    state.roundStart = Math.floor(d.roundStart / R) * R;
+    if (state.roundStart >= p.length) state.roundStart = 0;
     state.wrong = clean;
     return true;
   } catch(e){ return false; }
@@ -440,12 +518,13 @@ function resetRound(m){
   wrongThisWord = false;
 }
 function loadRound(){
-  if (state.roundStart >= WORDS.length){
+  var p = pool(), R = roundSize();
+  if (state.roundStart >= p.length){
     shuffle(state.order);
     state.roundStart = 0;
   }
-  var end = Math.min(state.roundStart + ROUND, WORDS.length);
-  queue = state.order.slice(state.roundStart, end).map(function(i){ return WORDS[i]; });
+  var end = Math.min(state.roundStart + R, p.length);
+  queue = state.order.slice(state.roundStart, end).map(function(i){ return p[i]; });
   resetRound('normal');
   loadWord();
   updateStats();
@@ -453,8 +532,9 @@ function loadRound(){
 }
 function nextRound(){
   if (mode === 'review'){ loadRound(); return; }
-  state.roundStart += ROUND;
-  if (state.roundStart >= WORDS.length){
+  var p = pool(), R = roundSize();
+  state.roundStart += R;
+  if (state.roundStart >= p.length){
     shuffle(state.order);
     state.roundStart = 0;
   }
@@ -463,12 +543,13 @@ function nextRound(){
 function startReview(){
   var keys = Object.keys(state.wrong);
   if (!keys.length){ toast('错词池是空的'); return; }
+  var p = pool();
   keys.sort(function(a,b){ return state.wrong[b] - state.wrong[a]; });
-  var picked = keys.slice(0, ROUND);
+  var picked = keys.slice(0, roundSize());
   queue = [];
   picked.forEach(function(zh){
-    for (var i=0;i<WORDS.length;i++){
-      if (WORDS[i][0] === zh){ queue.push(WORDS[i]); break; }
+    for (var i=0;i<p.length;i++){
+      if (p[i][0] === zh){ queue.push(p[i]); break; }
     }
   });
   shuffle(queue);
@@ -510,6 +591,7 @@ function currentCharIndex(){
   while (i < bounds.length && typed >= bounds[i]) i++;
   return Math.min(i, bounds.length - 1);
 }
+var PUNCT = /[，。？！、；：“”‘’（）《》…—·]/;
 function renderWord(){
   var chars = current[0].split('');
   var syls = sylsOf(current[1]);
@@ -521,14 +603,54 @@ function renderWord(){
 
   var ci = currentCharIndex();
   var html = '';
-  for (var i=0;i<chars.length;i++){
-    var cls = i < ci ? 'done' : (i === ci ? 'cur' : '');
-    html += '<div class="unit ' + cls + '">'
-         +  '<span class="ch">' + chars[i] + '</span>'
-         +  '<span class="syl">' + (syls[i] || '') + '</span>'
-         +  '</div>';
+
+  if (MODE === 'sent'){
+    /* 三层：句号/分号断行，逗号断小句；放不下时小句整体换行，不拆字 */
+    var lines = [], clauses = [], clause = '', si = 0;
+    for (var i=0;i<chars.length;i++){
+      var c = chars[i];
+      if (PUNCT.test(c)){
+        clause += '<div class="unit punct"><span class="ch">' + c + '</span><span class="syl"></span></div>';
+        if (/[；。？！]/.test(c)){
+          if (clause){ clauses.push(clause); clause = ''; }
+          lines.push(clauses);
+          clauses = [];
+        } else if (/[，、：]/.test(c)){
+          if (clause){ clauses.push(clause); clause = ''; }
+        }
+        continue;
+      }
+      var cls = si < ci ? 'done' : (si === ci ? 'cur' : '');
+      clause += '<div class="unit ' + cls + '">'
+             +  '<span class="ch">' + c + '</span>'
+             +  '<span class="syl">' + (syls[si] || '') + '</span>'
+             +  '</div>';
+      si++;
+    }
+    if (clause) clauses.push(clause);
+    if (clauses.length) lines.push(clauses);
+    html = lines.map(function(cs){
+      return '<div class="line">' + cs.map(function(cl){
+        return '<div class="clause">' + cl + '</div>';
+      }).join('') + '</div>';
+    }).join('');
+  } else {
+    for (var j=0;j<chars.length;j++){
+      var c2 = chars[j];
+      if (PUNCT.test(c2)){
+        html += '<div class="unit punct"><span class="ch">' + c2 + '</span><span class="syl"></span></div>';
+        continue;
+      }
+      var cls2 = j < ci ? 'done' : (j === ci ? 'cur' : '');
+      html += '<div class="unit ' + cls2 + '">'
+           +  '<span class="ch">' + c2 + '</span>'
+           +  '<span class="syl">' + (syls[j] || '') + '</span>'
+           +  '</div>';
+    }
   }
   document.getElementById('chars').innerHTML = html;
+  var srcEl = document.getElementById('src');
+  if (srcEl) srcEl.textContent = MODE === 'sent' ? '—— ' + current[2] : '';
   highlight(target[typed] || '');
 }
 function loadWord(){
@@ -597,7 +719,8 @@ function updateStats(){
     (queue.length ? Math.min(100, idx / queue.length * 100) : 0) + '%';
   var n = wrongCount();
   var b = document.getElementById('btnReview');
-  b.textContent = n ? '重练错词 (' + n + ')' : '重练错词';
+  var rl = MODE === 'sent' ? '重练错句' : '重练错词';
+  b.textContent = n ? rl + ' (' + n + ')' : rl;
   b.disabled = n === 0;
   document.getElementById('btnNext').textContent = mode === 'review' ? '回到练习' : '下一轮';
 }
@@ -610,7 +733,7 @@ function finish(){
     '<div style="font-size:26px;font-weight:600;color:var(--zhu)">'
     + (mode === 'review' ? '重练完成' : '本轮完成') + '</div>';
   var lines = [
-    queue.length + ' 词 · 准确率 ' + acc + '% · ' + speed + ' 字/分',
+    queue.length + (MODE === 'sent' ? ' 句' : ' 词') + ' · 准确率 ' + acc + '% · ' + speed + ' 字/分',
     '最长连对 ' + maxStreak
   ];
   if (mode === 'review'){
@@ -624,13 +747,25 @@ function finish(){
   tip.className = 'tip';
   tip.innerHTML = lines.join('<br>');
   document.getElementById('chars').appendChild(tip);
+  var srcEl = document.getElementById('src');
+  if (srcEl) srcEl.textContent = '';
   highlight('');
   updateStats();
 }
-function start(){
+function setMode(m){
+  MODE = m;
+  document.body.classList.toggle('mode-sent', m === 'sent');
+  var sub = document.getElementById('sub');
+  if (sub) sub.textContent = m === 'sent' ? '名言短句 · 45 句' : '地名 · 多音字 · 200 词';
+  document.querySelectorAll('.mode').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-mode') === m);
+  });
+  var prevBtn = document.getElementById('btnPrev');
+  if (prevBtn) prevBtn.textContent = m === 'sent' ? '上一句' : '上一词';
   if (!loadSave()) state = freshState();
   loadRound();
 }
+function start(){ setMode(MODE); }
 function speak(){
   if (!current) return;
   if (!('speechSynthesis' in window)){ toast('当前浏览器不支持语音'); return; }
@@ -668,6 +803,10 @@ document.getElementById('btnNext').addEventListener('click', nextRound);
 document.getElementById('btnPrev').addEventListener('click', function(){
   if (idx > 0){ idx--; typed = 0; loadWord(); updateStats(); }
 });
+document.querySelectorAll('.mode').forEach(function(b){
+  b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
+});
+
 buildKeyboard();
 start();
 </script>

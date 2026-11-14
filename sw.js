@@ -3,7 +3,7 @@
  * 改了 index.html / 两个游戏 / 图标之后，必须把 VERSION 改掉，
  * 否则浏览器会一直用旧缓存。
  */
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE = 'typing-' + VERSION;
 
 const ASSETS = [
